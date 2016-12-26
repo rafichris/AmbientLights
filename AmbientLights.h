@@ -31,7 +31,8 @@
 #endif
 
 /* Name and version */
-const char VERSION[] = "1.0";
+const char VERSION[] = "1.1";
+const char BUILD[] = __DATE__ " " __TIME__;
 
 /* Configuration file params */
 const char CONFIG_FILE[] = "/config.json";
@@ -80,6 +81,7 @@ typedef struct {
     /* Channels */
     bool        channel_gamma;   /* Use gamma map? */
     bool        zero;            /* Reset all PCA9685 values to zero during startup */
+    bool        ap;              /* Start AP after led sequence for 5 minutes */
     String      mapping;         /* Map channels to PCBA output port */
 
 } config_t;
@@ -91,11 +93,13 @@ uint16_t            *mapping;       /* Mapping Array: Map DMX (index) to Output 
 bool                reboot = false; /* Flag to reboot the ESP */
 long                stepVal           = 0;
 bool                WIFIsetUp = false;
+bool                bFinishedSequence = false;
 
 uint16_t             demoChannelValue = 1;     /* Initial demo value */
 uint8_t              demo             = 0;     /* Demo type for sequences 0=off */
 static unsigned long lWaitMillis      = 1;     /* Waiting time for demo sequences */
 static unsigned long lSetupFinishedMillis = 0;     /* Timestamp setup() finished */
+long                 lDisableWifiAt = 0;
 
 uint8_t              demoCounter      = 0;     /* Auxiliary value for demo sequences */
 

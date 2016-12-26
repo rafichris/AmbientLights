@@ -55,6 +55,7 @@ void send_admin_vals(AsyncWebServerRequest *request) {
     String values = "";
     values += "chipid|div|" + String(chipId) + "\n";
     values += "version|div|" + (String)VERSION + "\n";
+    values += "build|div|" + (String)BUILD + "\n";
     values += "title|div|" + config.id + " - Admin\n";
     request->send(200, "text/plain", values);
 }

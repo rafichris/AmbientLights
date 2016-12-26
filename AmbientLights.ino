@@ -71,6 +71,9 @@ void setup() {
     LOG_PORT.print(F("Ambient Lights v"));
     for (uint8_t i = 0; i < strlen_P(VERSION); i++)
         LOG_PORT.print((char)(pgm_read_byte(VERSION + i)));
+    LOG_PORT.print(" | ");
+    for (uint8_t i = 0; i < strlen_P(BUILD); i++)
+        LOG_PORT.print((char)(pgm_read_byte(BUILD + i)));
     LOG_PORT.println("");
 
     /* Load configuration from SPIFFS */
@@ -205,6 +208,7 @@ void loadConfig() {
         config.channel_count = json["channel"]["channel_count"];
         config.channel_gamma = json["channel"]["gamma"];
         config.zero = json["channel"]["zero"];
+        config.ap = json["channel"]["ap"];
         config.mapping = json["channel"]["mapping"].as<String>();
 
         /* Mapping */
@@ -251,6 +255,7 @@ void serializeConfig(String &jsonString, bool pretty, bool creds) {
     channel["channel_count"] = config.channel_count;
     channel["gamma"] = config.channel_gamma;
     channel["zero"] = config.zero;
+    channel["ap"] = config.ap;
 
     /* Mapping */
     String mappingStr = "";
@@ -379,7 +384,7 @@ void loop() {
         return;
     }
 
-    if( (long)( millis() - lSetupFinishedMillis - ( config.interVal * (config.channel_count + 1) +  2 * config.slopeVal)) <= 0 ){      
+    if( (long)( millis() - lSetupFinishedMillis - ( config.interVal * (config.channel_count + 1) +  1000)) <= 0 ){     
       for (int i = 0; i < config.channel_count; i++) {
           stepVal = (long)((millis() - lSetupFinishedMillis - config.interVal * i) * config.maxVal) / config.slopeVal;
           
@@ -389,9 +394,13 @@ void loop() {
           
       }
       channels.show();
+      bFinishedSequence = false;
+      lDisableWifiAt = 0;
+    }else{
+      bFinishedSequence = true;
     }
 
-    if(!WIFIsetUp && !digitalRead(0) ){
+    if(!WIFIsetUp && (!digitalRead(0) || bFinishedSequence && config.ap && lDisableWifiAt == 0) ){
       
         /* Generate and set hostname */
         char chipId[7] = { 0 };
@@ -419,6 +428,20 @@ void loop() {
         digitalWrite(BUILT_IN_LED, LOW);
         
         WIFIsetUp = true;
+        lDisableWifiAt = millis() + 5*60*1000;
+    }
+    
+    if(config.ap && lDisableWifiAt > 0 && (long)(lDisableWifiAt - millis()) < 0){
+        WiFi.disconnect(); 
+        WiFi.mode(WIFI_OFF);
+        WiFi.forceSleepBegin();
+        delay(1);
+
+        Serial.println(" - WIFI disabled"); 
+        digitalWrite(BUILT_IN_LED, HIGH);
+        
+        WIFIsetUp = false;
+        lDisableWifiAt = -1;
     }
 
     /* perform background stuff */

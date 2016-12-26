@@ -5,6 +5,7 @@ void send_config_channel_html(AsyncWebServerRequest *request) {
     if (request->params()) {
         config.channel_gamma = false;
         config.zero = false;
+        config.ap = false;
         digitalWrite(PIN_D4, HIGH);
         uint16_t old_nb_chan = config.channel_count;
         for (uint8_t i = 0; i < request->params(); i++) {
@@ -16,6 +17,7 @@ void send_config_channel_html(AsyncWebServerRequest *request) {
             if (p->name() == "channel_count") config.channel_count = p->value().toInt();
             if (p->name() == "gamma") config.channel_gamma = true;
             if (p->name() == "zero") config.zero = true;
+            if (p->name() == "ap") config.ap = true;
         }
 
         // use default mappinf if number of channels got updated
@@ -47,6 +49,7 @@ void send_config_channel_vals(AsyncWebServerRequest *request) {
     values += "channel_count|input|" + String(config.channel_count) + "\n";
     values += "gamma|chk|" + String(config.channel_gamma ? "checked" : "") + "\n";
     values += "zero|chk|" + String(config.zero ? "checked" : "") + "\n";
+    values += "ap|chk|" + String(config.ap ? "checked" : "") + "\n";
     values += "title|div|" + config.id + " - Channel Config\n";
     request->send(200, "text/plain", values);
 }

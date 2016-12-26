@@ -1,0 +1,105 @@
+<title id="title"></title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" type="text/css" href="style.css">
+<a href="/" class="btn btn--s">&lt;</a>&nbsp;&nbsp;<strong>Channel Configuration</strong>
+<hr>
+<form action="" method="post">
+<table border="0" cellspacing="0" cellpadding="3">
+<tr><td align="right">Device ID :</td><td><input type="text" id="devid" name="devid" value=""></td></tr>
+<tr><td align="right">Max. Value :</td><td><input type="number" id="maxVal" name="maxVal" value="255" min="0" max="255" onchange="updateDiagram()"></td></tr>
+<tr><td align="right">Interval [ms]:</td><td><input type="number" id="interVal" name="interVal" value="1000" min="0" max="10000" onchange="updateDiagram()"></td></tr>
+<tr><td align="right">Slope Time [ms]:</td><td><input type="number" id="slopeVal" name="slopeVal" value="500" min="0" max="10000" onchange="updateDiagram()"></td></tr>
+<tr><td align="right">Channel Count :</td><td><input type="text" id="channel_count" name="channel_count" value=""></td></tr>
+<tr><td align="right">Gamma Map :</td><td><input type="checkbox" id="gamma" name="gamma"></td></tr>
+<tr><td align="right">Reset output<br>values at startup:</td><td><input type="checkbox" id="zero" name="zero"></td></tr>
+
+<tr><td colspan="2" align="center"><input type="submit" style="width:150px" class="btn btn--m btn--green" value="Save"></td></tr>
+</table>
+</form>
+
+<div id="svgdiagram">
+<svg xmlns="http://www.w3.org/2000/svg" height="225" width="375" style="border: 0px solid #000;" viewBox="-50 -350 700 400">
+   
+<defs><marker id="arrow" markerWidth="15" markerHeight="10" refX="0" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,10 L15,5 z" fill="#000" />
+    </marker>
+		<style type="text/css"><![CDATA[
+			text {
+				fill: #000;
+        font-family: verdana, sans-serif;
+			}
+		]]></style>
+    </defs>
+
+<polyline id="poly1" fill="#f44242" fill-opacity="0.85" stroke="#000" stroke-width="3" points="0 0, 50 -230, 700 -230, 700  0"/>
+<polyline id="poly2" fill="#ddd" fill-opacity="0.85" stroke="#999" stroke-width="3" points="200 0, 250 -230, 700 -230, 700  0"/>
+<polyline id="poly3" fill="#ddd" fill-opacity="0.85" stroke="#999" stroke-width="3" points="400 0, 450 -230, 700 -230, 700  0"/>
+<polyline id="poly4" fill="#ddd" fill-opacity="0.85" stroke="#999" stroke-width="3" points="600 0, 650 -230, 700 -230, 700  0"/>
+    
+<!-- vertical lines -->
+<line x1="200" y1="-10" x2="200" y2="10" stroke="#000" stroke-width="2"/>
+<line x1="200" y1="-10" x2="200"y2="-265" stroke="#5184AF" stroke-width="4" stroke-linecap="round" stroke-dasharray="1, 10"/>
+<line x1="400" y1="-10" x2="400" y2="10" stroke="#000" stroke-width="2"/>
+<line x1="400" y1="-10" x2="400"y2="-265" stroke="#5184AF" stroke-width="4" stroke-linecap="round" stroke-dasharray="1, 10"/>
+<line x1="600" y1="-10" x2="600" y2="10" stroke="#000" stroke-width="2"/>
+<line x1="600" y1="-10" x2="600"y2="-265" stroke="#5184AF" stroke-width="4" stroke-linecap="round" stroke-dasharray="1, 10"/>
+<text id="intText1" x="195" y="5" text-anchor="end" alignment-baseline="hanging" font-size="20">1x Interval</text>
+<text id="intText2" x="395" y="5" text-anchor="end" alignment-baseline="hanging" font-family="Verdana" font-size="20">2x Interval</text>
+<text id="intText3" x="595" y="5" text-anchor="end" alignment-baseline="hanging" font-size="20">3x Interval</text>
+
+<line id="slopeDots" x1="50" y1="-280" x2="50"y2="-230" stroke="#AF5155" stroke-width="4" stroke-linecap="round" stroke-dasharray="1, 10"/>
+<line id="slopeMarker" x1="50" y1="-280" x2="50" y2="-300" stroke="#000" stroke-width="2"/>
+<text id="slopeText" x="55" y="-290" text-anchor="start" alignment-baseline="central" font-size="20">Slope time</text>
+
+<!-- horizontal lines -->
+<line x1="-10" y1="-255" x2="10" y2="-255" stroke="#000" stroke-width="2"/>
+<line x1="0" x2="1000" y1="-255" y2="-255" stroke="#5184AF" stroke-width="4" stroke-linecap="round" stroke-dasharray="1, 10"/>
+<text x="-5" y="-260" text-anchor="end" font-size="20">255</text>
+
+<!-- bubbles -->
+<circle cx="150" cy="-45" r="35" fill="white" stroke="#000" stroke-width="2"/>
+<text x="150" y="-45" text-anchor="middle" alignment-baseline="central" font-size="35">1</text>
+<circle cx="350" cy="-45" r="35" fill="white" stroke="#999" stroke-width="2"/>
+<text x="350" y="-45" text-anchor="middle" alignment-baseline="central" font-size="35">2</text>
+<circle cx="550" cy="-45" r="35" fill="white" stroke="#999" stroke-width="2"/>
+<text x="550" y="-45" text-anchor="middle" alignment-baseline="central"  font-size="35">3</text>
+
+<line x1="0" y1="0" x2="610" y2="0" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+<line x1="0" y1="0" x2="0" y2="-300" stroke="#000" stroke-width="2" marker-end="url(#arrow)" />
+</svg>
+</div>
+
+<script type="text/javascript" src="script.js"></script>
+<script>
+    setValues("/config/channelvals");
+    //setTimeout(updateDiagram, 500);
+    function updateDiagram() {
+
+        var maxVal = parseInt(document.getElementById("maxVal").value);
+        var interVal = parseInt(document.getElementById("interVal").value);
+        var slopeVal = parseInt(document.getElementById("slopeVal").value);
+
+        document.getElementById("poly1").setAttribute("points", "0 0, "+ (200*slopeVal/interVal) +" -" + maxVal + ", 700 -" + maxVal + ", 700  0"); 
+        document.getElementById("poly2").setAttribute("points", "200 0, "+ (200 + (200*slopeVal/interVal)) + " -" + maxVal + ", 700 -" + maxVal + ", 700  0"); 
+        document.getElementById("poly3").setAttribute("points", "400 0, "+ (400 + (200*slopeVal/interVal)) + " -" + maxVal + ", 700 -" + maxVal + ", 700  0"); 
+        document.getElementById("poly4").setAttribute("points", "600 0, "+ (600 + (200*slopeVal/interVal)) + " -" + maxVal + ", 700 -" + maxVal + ", 700  0"); 
+
+        document.getElementById("slopeDots").setAttribute("x1", (200*slopeVal/interVal));
+        document.getElementById("slopeDots").setAttribute("x2", (200*slopeVal/interVal));
+        document.getElementById("slopeDots").setAttribute("y2", "-" + maxVal);
+        document.getElementById("slopeMarker").setAttribute("x1", (200*slopeVal/interVal));
+        document.getElementById("slopeMarker").setAttribute("x2", (200*slopeVal/interVal));
+        document.getElementById("slopeText").setAttribute("x", (200*slopeVal/interVal + 5));
+
+
+        document.getElementById("intText1").innerHTML = (1*interVal).toString();
+        document.getElementById("intText2").innerHTML = (2*interVal).toString();
+        document.getElementById("intText3").innerHTML = (3*interVal).toString();
+        document.getElementById("slopeText").innerHTML = "Slope = " + (slopeVal).toString();
+
+    }
+    
+    updateDiagram();
+    
+</script>
+

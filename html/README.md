@@ -1,4 +1,4 @@
-ESPixelStick Web Source
+Ambient Lights Web Source
 =======================
 These are the web source files which must be placed in ```data/www``` and uploaded to SPIFFS with the [ESP8266 filesystem uploader](https://github.com/esp8266/arduino-esp8266fs-plugin).  All source files (html, css, js) should be minified and gziped before uploading.  A [gulp](http://gulpjs.com) build script is provided in the root of the sketch directory to automate this task, or you can do it manually.
 

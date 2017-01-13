@@ -47,6 +47,8 @@ AsyncWebServer      web(HTTP_PORT);     /* Web Server */
 /* Common Web pages and handlers */
 #include "page_root.h"
 #include "page_admin.h"
+#include "page_config_net.h"
+#include "page_status_net.h"
 
 void setup() {
     /* Setup serial log port */
@@ -85,6 +87,43 @@ void setup() {
     lSetupFinishedMillis = millis();
 }
 
+int initWifi_Client() {
+    /* Switch to station mode and disconnect just in case */
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    delay(100);
+
+    LOG_PORT.println("");
+    LOG_PORT.print(F("Connecting to "));
+    LOG_PORT.println(config.ssid);
+
+    WiFi.begin(config.ssid.c_str(), config.passphrase.c_str());
+    if (config.dhcp) {
+        LOG_PORT.print(F("Connecting with DHCP"));
+    } else {
+        /* We don't use DNS, so just set it to our gateway */
+        WiFi.config(IPAddress(config.ip[0], config.ip[1], config.ip[2], config.ip[3]),
+                    IPAddress(config.gateway[0], config.gateway[1], config.gateway[2], config.gateway[3]),
+                    IPAddress(config.netmask[0], config.netmask[1], config.netmask[2], config.netmask[3]),
+                    IPAddress(config.gateway[0], config.gateway[1], config.gateway[2], config.gateway[3])
+        );
+        LOG_PORT.print(F("Connecting with Static IP"));
+    }
+
+    uint32_t timeout = millis();
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        LOG_PORT.print(".");
+        if (millis() - timeout > CONNECT_TIMEOUT) {
+            LOG_PORT.println("");
+            LOG_PORT.println(F("*** Failed to connect ***"));
+            break;
+        }
+    }
+    LOG_PORT.println(WiFi.localIP());
+    return WiFi.status();
+}
+
 /* Configure and start the web server */
 void initWeb() {
     /* Handle OTA update from asynchronous callbacks */
@@ -108,13 +147,16 @@ void initWeb() {
     /* AJAX Handlers */
     web.on("/rootvals", HTTP_GET, send_root_vals);
     web.on("/adminvals", HTTP_GET, send_admin_vals);
-
+    web.on("/config/netvals", HTTP_GET, send_config_net_vals);
+    web.on("/config/survey", HTTP_GET, send_survey_vals);
+    web.on("/status/netvals", HTTP_GET, send_status_net_vals);
     web.on("/config/channelvals", HTTP_GET, send_config_channel_vals);
     web.on("/config/channelmappingvals", HTTP_GET, send_config_channel_mapping_vals);
     web.on("/demo/getbuttons", HTTP_GET, send_demo_button_vals);
         
     /* POST Handlers */
     web.on("/admin.html", HTTP_POST, send_admin_html, handle_fw_upload);
+    web.on("/config_net.html", HTTP_POST, send_config_net_html);
     web.on("/config/chmapdef", HTTP_POST, receive_config_channel_mapping_default);
     web.on("/demo/receivevals", HTTP_POST, send_demo_receive_vals);
 
@@ -179,6 +221,8 @@ void loadConfig() {
     File file = SPIFFS.open(CONFIG_FILE, "r");
     if (!file) {
         LOG_PORT.println(F("- No configuration file found."));
+        config.ssid = "";
+        config.passphrase = "";
         saveConfig();
     } else {
         /* Parse CONFIG_FILE json */
@@ -200,6 +244,26 @@ void loadConfig() {
 
         /* Device */
         config.id = json["device"]["id"].as<String>();
+
+        /* Fallback to embedded ssid and passphrase if null in config */
+        if (strlen(json["network"]["ssid"]))
+            config.ssid = json["network"]["ssid"].as<String>();
+        else
+            config.ssid = "";
+
+        if (strlen(json["network"]["passphrase"]))
+            config.passphrase = json["network"]["passphrase"].as<String>();
+        else
+            config.passphrase = "";
+
+        /* Network */
+        for (int i = 0; i < 4; i++) {
+            config.ip[i] = json["network"]["ip"][i];
+            config.netmask[i] = json["network"]["netmask"][i];
+            config.gateway[i] = json["network"]["gateway"][i];
+        }
+        config.dhcp = json["network"]["dhcp"];
+        config.ap_fallback = json["network"]["ap_fallback"];
 
         /* Channel */
         config.maxVal        = json["channel"]["maxval"];
@@ -246,6 +310,22 @@ void serializeConfig(String &jsonString, bool pretty, bool creds) {
     /* Device */
     JsonObject &device = json.createNestedObject("device");
     device["id"] = config.id.c_str();
+
+    /* Network */
+    JsonObject &network = json.createNestedObject("network");
+    network["ssid"] = config.ssid.c_str();
+    if (creds)
+        network["passphrase"] = config.passphrase.c_str();
+    JsonArray &ip = network.createNestedArray("ip");
+    JsonArray &netmask = network.createNestedArray("netmask");
+    JsonArray &gateway = network.createNestedArray("gateway");
+    for (int i = 0; i < 4; i++) {
+        ip.add(config.ip[i]);
+        netmask.add(config.netmask[i]);
+        gateway.add(config.gateway[i]);
+    }
+    network["dhcp"] = config.dhcp;
+    network["ap_fallback"] = config.ap_fallback;
 
     /* Channel */
     JsonObject &channel = json.createNestedObject("channel");
@@ -401,18 +481,29 @@ void loop() {
     }
 
     if(!WIFIsetUp && (!digitalRead(0) || bFinishedSequence && config.ap && lDisableWifiAt == 0) ){
-      
+        /* Connect with AP */
+        int status = initWifi_Client();
+    
         /* Generate and set hostname */
         char chipId[7] = { 0 };
         snprintf(chipId, sizeof(chipId), "%06x", ESP.getChipId());
         String hostname = "Ambient_" + String(chipId);
-        WiFi.hostname(hostname);
         
-        WiFi.mode(WIFI_AP);
-        String ssid = "Ambient_" + String(chipId);
-        WiFi.softAP(ssid.c_str());
-        Serial.println(WiFi.softAPIP()); 
-                
+        if (status != WL_CONNECTED) {
+            LOG_PORT.println(F("*** Timeout - FAILED TO ASSOCIATE WITH AP ***"));
+            
+    
+            WiFi.hostname(hostname);
+            
+            WiFi.mode(WIFI_AP);
+            String ssid = "Ambient_" + String(chipId);
+            LOG_PORT.print(F("*** Setting up Access Point : "));
+            LOG_PORT.print(ssid.c_str());
+            LOG_PORT.println(F(" ***"));
+            WiFi.softAP(ssid.c_str());
+            Serial.println(WiFi.softAPIP()); 
+        }
+    
         /* Configure and start the web server */
         initWeb();
     
@@ -424,7 +515,7 @@ void loop() {
         } else {
             LOG_PORT.println(F("*** Error setting up mDNS responder ***"));
         }
-    
+
         digitalWrite(BUILT_IN_LED, LOW);
         
         WIFIsetUp = true;

@@ -31,7 +31,7 @@
 #endif
 
 /* Name and version */
-const char VERSION[] = "1.1";
+const char VERSION[] = "1.2";
 const char BUILD[] = __DATE__ " " __TIME__;
 
 /* Configuration file params */
@@ -73,6 +73,16 @@ typedef struct {
     /* Device */
     String      id;             /* Device ID */
 
+    /* Network */
+    String      ssid;
+    String      passphrase;
+    String      hostname;
+    uint8_t     ip[4];
+    uint8_t     netmask[4];
+    uint8_t     gateway[4];
+    bool        dhcp;           /* Use DHCP */
+    bool        ap_fallback;    /* Fallback to AP if fail to associate */
+	
     long        maxVal;         /*  */
     long        interVal;       /*  */
     long        slopeVal;       /*  */
@@ -109,7 +119,7 @@ void saveConfig();
 /* Forward Declarations */
 void serializeConfig(String &jsonString, bool pretty = false, bool creds = false);
 void loadConfig();
-int  initWifi();
+int  initWifi_Client();
 void initWeb();
 void updateConfig();
 

@@ -31,7 +31,7 @@
 #endif
 
 /* Name and version */
-const char VERSION[] = "1.2";
+const char VERSION[] = "1.3";
 const char BUILD[] = __DATE__ " " __TIME__;
 
 /* Configuration file params */
@@ -81,7 +81,6 @@ typedef struct {
     uint8_t     netmask[4];
     uint8_t     gateway[4];
     bool        dhcp;           /* Use DHCP */
-    bool        ap_fallback;    /* Fallback to AP if fail to associate */
 	
     long        maxVal;         /*  */
     long        interVal;       /*  */

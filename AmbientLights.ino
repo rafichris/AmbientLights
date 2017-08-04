@@ -2,7 +2,7 @@
 * AmbientLights.ino
 *
 * Project: Ambient Lights - An ESP8266 and E1.31 based LED strips driver
-*  Copyright (c) 2016 Christoph Rafetzeder 
+*  Copyright (c) 2017 Christoph Rafetzeder 
 * 
 *  Some parts of this project are forked from:
 *   1.) http://www.esp8266.com/viewtopic.php?f=152&t=8814 from RichardS 
@@ -263,7 +263,6 @@ void loadConfig() {
             config.gateway[i] = json["network"]["gateway"][i];
         }
         config.dhcp = json["network"]["dhcp"];
-        config.ap_fallback = json["network"]["ap_fallback"];
 
         /* Channel */
         config.maxVal        = json["channel"]["maxval"];
@@ -325,7 +324,6 @@ void serializeConfig(String &jsonString, bool pretty, bool creds) {
         gateway.add(config.gateway[i]);
     }
     network["dhcp"] = config.dhcp;
-    network["ap_fallback"] = config.ap_fallback;
 
     /* Channel */
     JsonObject &channel = json.createNestedObject("channel");
@@ -464,7 +462,7 @@ void loop() {
         return;
     }
 
-    if( (long)( millis() - lSetupFinishedMillis - ( config.interVal * (config.channel_count + 1) +  1000)) <= 0 ){     
+    if( (long)( millis() - lSetupFinishedMillis - ( config.interVal * (config.channel_count + 1) +  config.slopeVal + 1000)) <= 0 ){     
       for (int i = 0; i < config.channel_count; i++) {
           stepVal = (long)((millis() - lSetupFinishedMillis - config.interVal * i) * config.maxVal) / config.slopeVal;
           
@@ -519,9 +517,9 @@ void loop() {
         digitalWrite(BUILT_IN_LED, LOW);
         
         WIFIsetUp = true;
-        lDisableWifiAt = millis() + 5*60*1000;
+        //lDisableWifiAt = millis() + 5*60*1000;
     }
-    
+/*    
     if(config.ap && lDisableWifiAt > 0 && (long)(lDisableWifiAt - millis()) < 0){
         WiFi.disconnect(); 
         WiFi.mode(WIFI_OFF);
@@ -534,7 +532,7 @@ void loop() {
         WIFIsetUp = false;
         lDisableWifiAt = -1;
     }
-
+*/
     /* perform background stuff */
     yield();
     
